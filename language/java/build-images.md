@@ -49,7 +49,7 @@ Let’s start our application and make sure it is running properly. Maven will m
 Open your terminal and navigate to the working directory we created and run the following command:
 
 ```console
-$ ./mvnw spring-boot:run
+$ ./gradlew bootRun
 ```
 
 This downloads the dependencies, builds the project, and starts it.
@@ -100,28 +100,30 @@ WORKDIR /app
 Usually, the very first thing you do once you’ve downloaded a project written in
 Java which is using Maven for project management is to install dependencies.
 
-Before we can run `mvnw dependency`, we need to get the Maven wrapper and our
-`pom.xml` file into our image. We’ll use the `COPY` command to do this. The
-`COPY` command takes two parameters. The first parameter tells Docker what
+
+Before we can run `gradle build`, we need to get the Gradle wrapper and our
+`build.gradle.kts` file and other files into our image. We’ll use the `COPY` command to do this.
+The `COPY` command takes two parameters. The first parameter tells Docker what
 file(s) you would like to copy into the image. The second parameter tells Docker
 where you want that file(s) to be copied to. We’ll copy all those files and
 directories into our working directory - `/app`.
 
 ```dockerfile
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
+COPY gradle ./gradle
+COPY ["gradlew", "gradle.properties", "settings.gradle.kts", "./"]
+COPY build.gradle.kts ./
 ```
 
-Once we have our `pom.xml` file inside the image, we can use the `RUN` command
-to execute the command `mvnw dependency:go-offline`. This works exactly the same
-way as if we were running `mvnw` (or `mvn`) dependency locally on our machine,
+Once we have our `build.gradle.kts` file inside the image, we can use the `RUN` command
+to execute the command `gradlew build`. This works exactly the same
+way as if we were running `gradlew` (or `gradle`) dependency locally on our machine,
 but this time the dependencies will be installed into the image.
 
 ```dockerfile
-RUN ./mvnw dependency:go-offline
+RUN ./gradlew build
 ```
 
-At this point, we have an Alpine version 3.13 image that is based on OpenJDK version 16, and we have also installed our dependencies. The next thing we need to do is to add our source code into the image. We’ll use the `COPY` command just like we did with our `pom.xml` file above.
+At this point, we have an Alpine version 3.13 image that is based on OpenJDK version 16, and we have also installed our dependencies. The next thing we need to do is to add our source code into the image. We’ll use the `COPY` command just like we did with our `build.gradle.kts` file above.
 
 ```dockerfile
 COPY src ./src
@@ -130,7 +132,7 @@ COPY src ./src
 This `COPY` command takes all the files located in the current directory and copies them into the image. Now, all we have to do is to tell Docker what command we want to run when our image is executed inside a container. We do this using the `CMD` command.
 
 ```dockerfile
-CMD ["./mvnw", "spring-boot:run"]
+CMD ["./gradle", "bootRun"]
 ```
 
 Here's the complete Dockerfile.
@@ -142,13 +144,15 @@ FROM openjdk:16-alpine3.13
 
 WORKDIR /app
 
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
-RUN ./mvnw dependency:go-offline
+COPY gradle ./gradle
+COPY ["gradlew", "gradle.properties", "settings.gradle.kts", "./"]
+COPY build.gradle.kts ./
+
+RUN ./gradlew build
 
 COPY src ./src
 
-CMD ["./mvnw", "spring-boot:run"]
+CMD ["./gradlew", "bootRun"]
 ```
 
 ### Create a `.dockerignore` file
